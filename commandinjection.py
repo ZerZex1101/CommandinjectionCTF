@@ -1,4 +1,5 @@
 import os
+import subprocess
 from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
@@ -11,7 +12,7 @@ def index():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Command Injection Challenge</title>
+        <title>Pirate-flag-everywhherer</title>
         <style>
             body {
                 font-family: 'Courier New', Courier, monospace;
@@ -152,10 +153,32 @@ def index():
 @app.route('/ping', methods=['GET'])
 def ping():
     ip = request.args.get('ip')
-    if not ip:
-        return "IP address is required", 400
-    result = os.popen(f"ping -c 1 {ip}").read()
-    return f"<pre>{result}</pre>"
+
+    # Basic input validation (can be bypassed with encoding tricks)
+    if not ip or any(char in ip for char in [';', '&', '|', '$', '`']):
+        return "<h2>ERROR: Captain Luffy says no funny business!</h2>", 400
+
+    try:
+        # Using shell=True to allow command injection exploits
+        result = subprocess.check_output(f'ping -c 1 {ip}', stderr=subprocess.STDOUT, shell=True)
+        result = result.decode('utf-8')
+    except Exception as e:
+        result = str(e)
+
+    return render_template_string("""
+    <h1>Ping Results:</h1>
+    <pre>{{ result }}</pre>
+    """, result=result)
+
+# Hidden route with secret key
+@app.route('/nami-is-the-best', methods=['GET'])
+def secret_route():
+    key = request.args.get('key')
+
+    if key == "GolD_Roger":
+        return "<h1>Welcome to the Pirate King's Treasure!</h1><p>You've found the One Piece!  HACKOPS{Y0u_G0t_$0m3_P1r@T3_$K11ls}</p>"
+    else:
+        return "<h2>ERROR: That's not the secret key! Only Gol D. Roger knew the way!</h2>", 403
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
